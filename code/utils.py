@@ -29,6 +29,8 @@ def assert_val(val, message):
     if not val:
         if "!" in message:
             # remove the "!" from the message
+
+            
             ColorPrint.printerror(message[1:])
         elif "?" in message:
             ColorPrint.printwarning(message[1:])
@@ -37,7 +39,7 @@ def assert_val(val, message):
         elif "#" in message:
             ColorPrint.printinfo(message[1:])
         else:
-            ColorPrint.printbold(message[1:])
+            ColorPrint.printbold(message)
 
 class ColorPrint:
     def printerror(message):

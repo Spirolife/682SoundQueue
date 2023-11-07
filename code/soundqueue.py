@@ -3,7 +3,7 @@
 # 2. Runs the soundqueueing model with a supplied audio file, and produces the next song in the queue
 
 import autoencoder
-# import preprocessing
+import preprocessing
 # import rankingsystem
 import torch
 import utils
@@ -23,21 +23,26 @@ import wandb
 
 # 7. Use the test set to produce a ranking
 # 8. Evaluate the ranking
+#Initialize a new wandb run
+wandb.init(project="baseline-sound-queue", config={
+    "learning_rate": 0.001,
+    "architecture": "Convolutional Autoencoder",
+    "dataset": "FMA",
+    "epochs": 20,
+    }, tags=["autoencoder", "convolutional", "fma", "preprocessing"])
 
 
 # 1 and 2, load and preprocess the dataset
-# train_set, test_set, validation_set, genre_data = preprocessing.get_data()
+train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data(overwrite_data=True)
 
-#Create list of 1 tensor with size 660000 with random floats between 0 and 1
-train_set = [rand(660000),rand(660000),rand(660000)]
-validation_set = [rand(660000)]
-test_set = [rand(660000)]
+exit()
+
 
 #NOTE: Check how the model works with dataset inputs (each tensor) of different sizes and ensure it gets truncation!
 
 #Could Call the function with True, but that would rerun the preprocessing which would take a lot of time:
 #So dont run this : train_set, test_set, validation_set, genre_data = preprocessing.get_data(True)
-# utils.genre_data = genre_df
+utils.genre_data = genre_df
 
 # Print important information about the dataset 
 utils.diagnostic_print("Train set size: " + str(len(train_set)))
@@ -46,14 +51,6 @@ utils.diagnostic_print("Validation set size: " + str(len(validation_set)))
 
 utils.diagnostic_print("Shape of audio tensor: " + str(train_set[0][0].shape))
 
-
-#Initialize a new wandb run
-wandb.init(project="baseline-sound-queue", config={
-    "learning_rate": 0.001,
-    "architecture": "Convolutional Autoencoder",
-    "dataset": "FMA",
-    "epochs": 20,
-    }, tags=["autoencoder", "convolutional", "fma", "preprocessing"])
 
 # # 3 and 4, train the autoencoder and encode the dataset
 # encoded_train, encoded_test = autoencoder.get_encoded_data(train_set, validation_set=validation_set,wandb=wandb)

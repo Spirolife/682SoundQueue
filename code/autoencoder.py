@@ -38,6 +38,8 @@ def get_encoder(train_set,validation_set,wandb=None):
 	else:
 		utils.diagnostic_print("Autoencoder not found, training...")
 		#create train dataset object
+		# remove any tensors that are not of shape > 660000
+		train_set = [tensor for tensor in train_set if tensor.shape[0] > 330000]
 		train_dataset =  custom_dataset.CustomDataset(train_set)
 		#create validation dataset object
 		validation_dataset = custom_dataset.CustomDataset(validation_set)
@@ -71,56 +73,84 @@ def encode_dataset(encoder, train_set, test_set):
 #         self.test_set = test_set
 #         self.validation_set = validation_set
 class Autoencoder(nn.Module):
-    def __init__(self):
-        super(Autoencoder, self).__init__()
+	def __init__(self):
+		super(Autoencoder, self).__init__()
+		# input of size (1, 1, 330000)
+		# want encoded shape to be 320
 
-        # Encoder
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=11, stride=2, padding=5) #Shape after conv1:  torch.Size([32, 330000])
-        self.relu1 = nn.ReLU()
-        self.maxpool = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.dropout1 = nn.Dropout(p=0.5)
-        self.fc1 = nn.Linear(in_features=330006, out_features=128)
-        self.relu2 = nn.ReLU()
-        self.dropout2 = nn.Dropout(p=0.5)
-        self.fc2 = nn.Linear(in_features=128, out_features=64)
-        self.relu3 = nn.ReLU()
+		# Encoder
 
-        # Decoder
-        self.fc3 = nn.Linear(in_features=64, out_features=128)
-        self.relu4 = nn.ReLU()
-        self.dropout3 = nn.Dropout(p=0.5)
-        self.fc4 = nn.Linear(in_features=128, out_features=330006)
-        self.relu5 = nn.ReLU()
-        self.conv_transpose = nn.ConvTranspose1d(in_channels=32, out_channels=1, kernel_size=11, stride=2, padding=5, output_padding=1)
-        
-    def forward(self, x):
-        # Encoder
-        x = self.conv1(x)
-        print("Shape after conv1: ", x.shape)
-        x = self.relu1(x)
-        x = self.maxpool(x)
-        x = self.dropout1(x)
-        x = x.view(x.size(0), -1)  # Flatten
-        x = self.fc1(x)
-        print("Shape after fc1: ", x.shape)
-        x = self.relu2(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        print("Shape after fc2: ", x.shape)
-        x = self.relu3(x)
+		self.conv1 = nn.Conv1d(1, 4, kernel_size=3, stride=1, padding=1)
+		self.relu1 = nn.ReLU(True)
+		self.maxpool = nn.MaxPool1d(kernel_size=300, stride=2)
+		self.dropout1 = nn.Dropout(p=0.5)
+		self.fc1 = nn.Linear(4 * 164851, 50)
+		self.relu2 = nn.ReLU(True)
+		
+		self.encoder = nn.Sequential(
+			self.conv1,
+			self.relu1,
+			self.maxpool,
+			self.dropout1,
+			nn.Flatten(),
+			self.fc1,
+			self.relu2
+		)
 
-        # Decoder
-        x = self.fc3(x)
-        print("Shape after fc3: ", x.shape)
-        x = self.relu4(x)
-        x = self.dropout3(x)
-        x = self.fc4(x)
-        print("Shape after fc4: ", x.shape)
-        x = self.relu5(x)
-        x = x.view(x.size(0), 32, 550)
-        x = self.conv_transpose(x)
-        print("Shape after conv_transpose: ", x.shape)
-        return x
+		# Decoder
+		self.fc3 = nn.Linear(50, 4 * 164851)
+		self.relu3 = nn.ReLU(True)
+		self.conv2 = nn.ConvTranspose1d(4, 1, kernel_size=3, stride=1, padding=1)
+		self.upsample = nn.Upsample(size=(330000), mode='nearest')
+		self.relu4 = nn.ReLU(True)
+
+		self.decoder = nn.Sequential(
+			self.fc3,
+			self.relu3,
+			nn.Unflatten(1, (4, 164851)),
+			self.upsample,
+			self.conv2,
+			self.relu4
+		)
+
+
+
+	def forward(self, x):
+		print_all = False
+
+		if print_all:
+			print(x.shape)
+			x = self.conv1(x)
+			print(x.shape)
+			x = self.relu1(x)
+			print(x.shape)
+			x = self.maxpool(x)
+			print(x.shape)
+			x = self.dropout1(x)
+			print(x.shape)
+			x = x.view(-1, 4 * 164851)
+			print(x.shape)
+			x = self.fc1(x)
+			print(x.shape)
+			x = self.relu2(x)
+			print(x.shape)
+			x = self.fc3(x)
+			print(x.shape)
+			x = self.relu3(x)
+			print(x.shape)
+			x = x.view(-1, 4, 164851)
+			print(x.shape)
+			x = self.conv2(x)
+			print(x.shape)
+			x = self.upsample(x)
+			print(x.shape)
+			x = self.relu4(x)
+			print(x.shape)
+		else:
+			x = self.encoder(x)
+			x = self.decoder(x)
+
+		return x
 
 
 	
@@ -146,7 +176,7 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	print(device)
 	model.to(device)
 	learning_rate = 0.001
-	num_epochs = 50
+	num_epochs = 20
 	# Define the loss function and optimizer
 	criterion = torch.nn.MSELoss()
 	optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -168,7 +198,7 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 			loss.backward()
 			optimizer.step()
 			wandb.log({"loss": loss})
-		if epoch % 5== 0:
+		if epoch % 1== 0:
 			print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 			#Run the validation set and check the loss..
 			for data_val in validation_loader:

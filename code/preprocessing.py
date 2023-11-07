@@ -6,19 +6,21 @@ import utils
 from tqdm import tqdm
 import librosa
 import csv
-from pandas import read_csv
+import pandas
 
-def get_data( overwrite_data=False):
+# TODO: Need a tensor to metadata link, saving track_id
+
+def get_data(overwrite_data=False):
     BASE_DIR = os.path.join('..', 'datasets', 'fma')
 
     if overwrite_data:
         # Split the data into train, test, val
-        train_data, test_data, val_data, genre_data = split_data(BASE_DIR)
+        train_data, test_data, val_data, tracks_df, genre_data = split_data(BASE_DIR)
     else:
         # Load the data from the folders
-        train_data, test_data, val_data, genre_data = load_data(BASE_DIR)
+        train_data, test_data, val_data, tracks_df, genre_data = load_data(BASE_DIR)
 
-    return train_data, test_data, val_data, genre_data
+    return train_data, test_data, val_data, tracks_df, genre_data
     
 
 # Converts the original FMA data into a format that can be used by the autoencoder
@@ -39,7 +41,7 @@ def split_data(BASE_DIR):
         tracks_df = torch.load(os.path.join(BASE_DIR, 'metadata.pt'))
     else:
         # read in the csv file using pandas
-        tracks_df = read_csv(tracks_path, header=[0, 1], index_col=None, skiprows=[2], encoding='utf-8', low_memory=False)
+        tracks_df = pandas.read_csv(tracks_path, header=[0, 1], index_col=None, skiprows=[2], encoding='utf-8', low_memory=False)
         # Get the column indices for the data we want.
         # [track_id, album_title, artist_name, set_split, set_subset, track_genres_all, track_title]
         
@@ -69,9 +71,15 @@ def split_data(BASE_DIR):
     converted_test = []
     converted_validation = []
 
+    # dataframe to link index to track_id
+    index_to_track_id = pandas.DataFrame(columns=["set_split", "index", "track_id"])
+
     lost_to_errors = 0
     # NOTE: Not the most efficient. Ideally only need to do this once, or for each new dataset.
     for folder in os.listdir(AUDIO_DIR):
+        # if it is not a folder, skip
+        if not os.path.isdir(os.path.join(AUDIO_DIR, folder)):
+            continue
         folder_path = os.path.join(AUDIO_DIR, folder)
         pbar2 = tqdm(total=len(os.listdir(folder_path)), desc="Converting audio files in " + folder_path)
         for file in os.listdir(folder_path):
@@ -79,21 +87,25 @@ def split_data(BASE_DIR):
             # Convert into a tensor, autoencoder-useable format
             audio_file_name = file.split(".")[0]
             audio_file_name = '{0:0>6}'.format(audio_file_name)
-            converted_audio_file, lost = convert_audio(os.path.join(folder_path, file))
+            # converted_audio_file, lost = convert_audio(os.path.join(folder_path, file))
             # I have decided i do not care enough about the lost files to do anything about them FUCK YOU
-            if lost:
-                lost_to_errors += 1
-                continue
+            # if lost:
+            #     lost_to_errors += 1
+            #     continue
             # Save the audio file in the correct split set by checking the tracks_df. If the matching track_id has a set_split of training, save in train folder, etc.
             try:
                 tracks_df.loc[int(audio_file_name)]
                 sub_split = tracks_df.loc[int(audio_file_name)][("set", "split")] if tracks_df.loc[int(audio_file_name)][("set", "split")] != "training" else "train"
                 if sub_split == "train":
-                    converted_train.append(converted_audio_file)
+                    # converted_train.append(converted_audio_file)
+                    # add to index_to_id df
+                    index_to_track_id.loc[len(index_to_track_id.index)] = [sub_split, len(converted_train), tracks_df.loc[int(audio_file_name)][("general", "track_id")]]
                 elif sub_split == "test":
-                    converted_test.append(converted_audio_file)
+                    # converted_test.append(converted_audio_file)
+                    index_to_track_id.loc[len(index_to_track_id.index)] = [sub_split, len(converted_test), tracks_df.loc[int(audio_file_name)][("general", "track_id")]]
                 elif sub_split == "validation":
-                    converted_validation.append(converted_audio_file)
+                    # converted_validation.append(converted_audio_file)
+                    index_to_track_id.loc[len(index_to_track_id.index)] = [sub_split, len(converted_validation), tracks_df.loc[int(audio_file_name)][("general", "track_id")]]
                 else:
                     utils.diagnostic_print("!" + "Error: audio file " + audio_file_name + " not found in metadata, does not have a set_split")
                     continue
@@ -102,9 +114,11 @@ def split_data(BASE_DIR):
                 continue
     # try saving the converted audio files
     try:
-        torch.save(converted_train, os.path.join(BASE_DIR, "train.pt"))
-        torch.save(converted_test, os.path.join(BASE_DIR, "test.pt"))
-        torch.save(converted_validation, os.path.join(BASE_DIR, "validation.pt"))
+        # torch.save(converted_train, os.path.join(BASE_DIR, "train.pt"))
+        # torch.save(converted_test, os.path.join(BASE_DIR, "test.pt"))
+        # torch.save(converted_validation, os.path.join(BASE_DIR, "validation.pt"))
+        torch.save(index_to_track_id, os.path.join(BASE_DIR, "index_to_track_id.pt"))
+        exit()
     except Exception as e:
         utils.diagnostic_print("!" + "Error saving converted audio files")
         raise e
@@ -113,7 +127,7 @@ def split_data(BASE_DIR):
     utils.diagnostic_print("#" + "[Loading Genres into New Format..]")
 
     # read in the csv file using pandas
-    genres_df = read_csv(genres_path, header=[0, 1], index_col=0, skiprows=[2], encoding='utf-8')
+    genres_df = pandas.read_csv(genres_path, header=[0, 1], index_col=0, skiprows=[2], encoding='utf-8')
 
     # Get the column indices for the data we want.
     # [genre_id, title, parent]
@@ -148,13 +162,14 @@ def convert_audio(dir, sr=22050):
         audio, sr = librosa.load(dir, sr=sr)
     except Exception as e:
         utils.diagnostic_print("!" + "Error loading audio file: " + dir)
-        lost = True
+        return None, lost
 
     # Convert to tensor
     try:
         audio_tensor = torch.from_numpy(audio)
     except Exception as e:
         utils.diagnostic_print("!" + "Error converting audio file to tensor: " + dir)
+        return None, lost
 
     return audio_tensor, lost
 
@@ -168,10 +183,6 @@ def load_data(dir):
     except Exception as e:
         utils.diagnostic_print("!" + "Error loading metadata dataframe")
         raise e
-
-    converted_train = []
-    converted_test = []
-    converted_validation = []
 
     # try loading converted audio files
     try:
@@ -187,7 +198,6 @@ def load_data(dir):
     except Exception as e:
         utils.diagnostic_print("!" + "Error loading genre_dict")
         raise e
-
 
     utils.diagnostic_print("#" + "[Finished Loading Data from Folders..]")
     return converted_train, converted_test, converted_validation, tracks_df, genre_dict
