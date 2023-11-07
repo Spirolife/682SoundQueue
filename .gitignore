@@ -50,6 +50,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+
+# Dont include anything in the datasets folder that isnt a .pt file
+# datasets/*  
+# !datasets/*.pt  
 datasets/
 
 # Translations
