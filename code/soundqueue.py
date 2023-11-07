@@ -22,7 +22,9 @@ import rankingsystem
 
 
 # 1 and 2, load and preprocess the dataset
-train_set, test_set, validation_set, genre_data = preprocessing.get_data(True)
+train_set, test_set, validation_set, genre_data = preprocessing.get_data()
+#Could Call the function with True, but that would rerun the preprocessing which would take a lot of time:
+#So dont run this : train_set, test_set, validation_set, genre_data = preprocessing.get_data(True)
 utils.genre_data = genre_data
 
 # Print important information about the dataset 
