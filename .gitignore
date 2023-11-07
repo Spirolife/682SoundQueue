@@ -52,9 +52,17 @@ coverage.xml
 cover/
 
 # Dont include anything in the datasets folder that isnt a .pt file
-# datasets/*  
-# !datasets/*.pt  
-datasets/
+!datasets/fma/*.pt
+# ignore all other subfolders inside fma
+datasets/fma/*/
+
+
+
+
+# dont push zip files or tar files
+*.zip
+*.tar
+*.tar.gz
 
 # Translations
 *.mo
