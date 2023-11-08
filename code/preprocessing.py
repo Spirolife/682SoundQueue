@@ -1,17 +1,19 @@
 #  PURPOSE OF FILE: Preprocessing functions for the soundqueue project. Datasets are loaded and preprocessed here.
 
+import csv
 import os
+
+import librosa
+import pandas
 import torch
 import utils
 from tqdm import tqdm
-import librosa
-import csv
-import pandas
 
 # TODO: Need a tensor to metadata link, saving track_id
 
 def get_data(overwrite_data=False):
-    BASE_DIR = os.path.join('..', 'datasets', 'fma')
+    BASE_DIR = os.path.join('.', 'datasets', 'fma')
+    #     BASE_DIR = os.path.join('..', 'datasets', 'fma')
 
     if overwrite_data:
         # Split the data into train, test, val
@@ -118,7 +120,6 @@ def split_data(BASE_DIR):
         # torch.save(converted_test, os.path.join(BASE_DIR, "test.pt"))
         # torch.save(converted_validation, os.path.join(BASE_DIR, "validation.pt"))
         torch.save(index_to_track_id, os.path.join(BASE_DIR, "index_to_track_id.pt"))
-        exit()
     except Exception as e:
         utils.diagnostic_print("!" + "Error saving converted audio files")
         raise e
@@ -176,9 +177,10 @@ def convert_audio(dir, sr=22050):
 # Loads the data from the folders pre-split
 def load_data(dir):
     utils.diagnostic_print("#" + "[Loading Data from Folders..]")
-
     # try loading metadata df
     try:
+        print(f'Load Data from dir:{dir}')
+        # tracks_df = torch.load(output)
         tracks_df = torch.load(os.path.join(dir, "metadata.pt"))
     except Exception as e:
         utils.diagnostic_print("!" + "Error loading metadata dataframe")

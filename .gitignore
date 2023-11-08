@@ -165,9 +165,25 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+
+#Remove Wandb stuff
+.wandb/
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+datasets/fma/train.pt
+datasets/fma/test.pt
+datasets/fma/validation.pt
+datasets/fma/index_to_track_id.pt
+wandb/run-20231107_135643-sjuelwvq/files/wandb-metadata.json
+wandb/run-20231107_135643-sjuelwvq/files/wandb-summary.json
+wandb/run-20231107_135740-g2u9g5co/run-g2u9g5co.wandb
+wandb/run-20231107_135740-g2u9g5co/files/config.yaml
+wandb/run-20231107_135643-sjuelwvq/files/config.yaml
+wandb/run-20231107_135643-sjuelwvq/run-sjuelwvq.wandb
+wandb/run-20231107_135643-sjuelwvq/files/requirements.txt
+wandb/run-20231107_135740-g2u9g5co/files/wandb-metadata.json

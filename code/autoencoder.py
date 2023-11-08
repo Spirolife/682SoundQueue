@@ -4,8 +4,10 @@ import os
 
 import custom_dataset
 import torch
+import tqdm
 import utils
 from torch import nn
+from tqdm import tqdm
 
 
 # Called by main.py, trains the autoencoder and returns the encoded dataset
@@ -20,10 +22,14 @@ def get_encoded_data(train_set, test_set, validation_set,wandb=None):
 	except:
 		utils.diagnostic_print("Encoded train and test sets not found, training autoencoder...")
 
-		encoder = get_encoder(train_set, test_set, validation_set,wandb=wandb)
+		encoder = get_encoder(train_set, validation_set,wandb)
 
-		encoded_train, validation_set, encoded_test = encode_dataset(encoder, train_set, validation_set, test_set)
+		utils.diagnostic_print("Encoder found, encoding train and test sets...")
+
+		encoded_train, encoded_test = encode_dataset(encoder, train_set, test_set)
 		# encode the train and test set and return them
+
+		utils.diagnostic_print("Encoded train and test sets, returning Encoded Train and encoded test...")
 		return encoded_train, encoded_test
 
 # Gets the optimal encoder, load or train
@@ -119,33 +125,33 @@ class Autoencoder(nn.Module):
 		print_all = False
 
 		if print_all:
-			print(x.shape)
+			# print(x.shape)
 			x = self.conv1(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.relu1(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.maxpool(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.dropout1(x)
-			print(x.shape)
+			# print(x.shape)
 			x = x.view(-1, 4 * 164851)
-			print(x.shape)
+			# print(x.shape)
 			x = self.fc1(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.relu2(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.fc3(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.relu3(x)
-			print(x.shape)
+			# print(x.shape)
 			x = x.view(-1, 4, 164851)
-			print(x.shape)
+			# print(x.shape)
 			x = self.conv2(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.upsample(x)
-			print(x.shape)
+			# print(x.shape)
 			x = self.relu4(x)
-			print(x.shape)
+			# print(x.shape)
 		else:
 			x = self.encoder(x)
 			x = self.decoder(x)
@@ -173,7 +179,7 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	utils.diagnostic_print("Dataloaders created")
 	# Move the model to GPU
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-	print(device)
+	print(f'Inside Train_autoencoder: device: {device}; Checking cuda is available:{torch.cuda.is_available()}')
 	model.to(device)
 	learning_rate = 0.001
 	num_epochs = 20
@@ -188,8 +194,8 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	
 	utils.diagnostic_print("Loaded model, defined loss function and optimizer,Now training...")
 	print(f'TRAINING')
-	# Train the autoencoder
-	for epoch in range(num_epochs):
+	# Train the autoencoder and add tqdm.tqdm to see progress
+	for epoch in tqdm(range(num_epochs)):
 		for data in train_loader:
 			tensor_arr = data
 			optimizer.zero_grad()

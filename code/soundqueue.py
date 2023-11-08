@@ -33,9 +33,9 @@ wandb.init(project="baseline-sound-queue", config={
 
 
 # 1 and 2, load and preprocess the dataset
-train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data(overwrite_data=True)
+train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data(overwrite_data=False)
 
-exit()
+# exit()
 
 
 #NOTE: Check how the model works with dataset inputs (each tensor) of different sizes and ensure it gets truncation!
@@ -51,10 +51,11 @@ utils.diagnostic_print("Validation set size: " + str(len(validation_set)))
 
 utils.diagnostic_print("Shape of audio tensor: " + str(train_set[0][0].shape))
 
+print(f'Cuda.is_available(): {torch.cuda.is_available()}')
 
 # # 3 and 4, train the autoencoder and encode the dataset
-# encoded_train, encoded_test = autoencoder.get_encoded_data(train_set, validation_set=validation_set,wandb=wandb)
-encoder = autoencoder.get_encoder(train_set,validation_set=validation_set,wandb=wandb)
+encoded_train, encoded_test = autoencoder.get_encoded_data(train_set,test_set,validation_set,wandb)
+# encoder = autoencoder.get_encoder(train_set,validation_set=validation_set,wandb=wandb)
 
 # # 5,6,7,8 train the ranking system and evaluate the ranking
 # results = rankingsystem.get_ranking_results(encoded_train, encoded_test, validation_set)
