@@ -23,8 +23,9 @@ class CustomDataset(torch.utils.data.Dataset):
 
         # data is super small numbers, so we need to scale it up
         item = item * 100
-        print("item shape: " + str(item.shape))
-        item = item.reshape(1, 3, -1).to(device)
+        # print("item shape: " + str(item.shape))
+
+        item = item.to(device)
         return item
     
     def __len__(self):

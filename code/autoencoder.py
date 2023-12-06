@@ -52,7 +52,7 @@ def get_encoder(train_set,validation_set,wandb=None):
 	
 
 # Sends the dataset through the encoder
-def encode_dataset(encoder, train_set, test_set):
+def encode_dataset(encoder, train_set, test_set, K=500):
 	# 1. encode the train set
 	# 2. encode the test set
 	# 3. save the encoded train and test set for later use
@@ -63,16 +63,16 @@ def encode_dataset(encoder, train_set, test_set):
 	train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=1, shuffle=False)
 	test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=1, shuffle=False)
 
-	encoded_train = torch.zeros((len(train_set), train_set.min_size))
-	encoded_test = torch.zeros((len(test_set), test_set.min_size))
+	encoded_train = torch.zeros((len(train_set), K))
+	encoded_test = torch.zeros((len(test_set), K))
 	# encode the train set
 	for i, data in enumerate(tqdm(train_loader)):
-		print(type(data))
-		encoded_train[i] = encoder(data)
+		# print(data.shape, encoder(data).shape)
+		encoded_train[i] = encoder(data).detach()
 
 	# encode the test set
 	for i, data in enumerate(tqdm(test_loader)):
-		encoded_test[i] = encoder(data)
+		encoded_test[i] = encoder(data).detach()
 
 	utils.diagnostic_print("Encoded train and test sets, saving...")
 	torch.save(encoded_train, "encoded_train.pt")
@@ -86,7 +86,7 @@ def encode_dataset(encoder, train_set, test_set):
 #         self.test_set = test_set
 #         self.validation_set = validation_set
 class Autoencoder(nn.Module):
-	def __init__(self, K ):
+	def __init__(self, K):
 		super(Autoencoder, self).__init__()
 		# input of size (batch_size, 3, min_size), where 3 is the number of channels which is duplicated
 		# want encoded shape to be (batch_size, K). use 3 1d convolutions to get there
@@ -123,10 +123,8 @@ class Autoencoder(nn.Module):
 
 	def forward(self, x):
 		# print(x.shape)
-		if len(x.shape) == 2:
-			x = x.reshape(1, 3, -1)
-		print(x.shape)
 		x = self.encoder(x)
+		# print(x.shape)
 		x = self.decoder(x)
 		# print(x.shape)
 
@@ -140,14 +138,14 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	test_set: Dataset Object of test data
 	Returns encoder from autoencoder model trained on train_set and validated on validation_set
 	"""
-	model = Autoencoder(K=train_set[0].shape[0]).to(device)
+	model = Autoencoder(K=500).to(device)
 
 	# Move the model to GPU
 	
 	print(f'Inside Train_autoencoder: device: {device}; Checking cuda is available:{torch.cuda.is_available()}')
 	model.to(device)
-	learning_rate = 0.00001
-	num_epochs = 20
+	learning_rate = 1e-8
+	num_epochs = 100
 	batch_size = 20
 
 	# Define the loss function and optimizer
@@ -169,6 +167,7 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 
 	# Train the autoencoder and add tqdm.tqdm to see progress
 	for epoch in tqdm(range(num_epochs)):
+		loss_avg = 0
 		for data in train_loader:	
 			tensor_arr = data
 			optimizer.zero_grad()
@@ -176,8 +175,9 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 			loss = criterion(output, tensor_arr)
 			loss.backward()
 			optimizer.step()
-			wandb.log({"loss": loss})
-		print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}',end='\r')
+			loss_avg += loss.item()
+		wandb.log({"avg loss": loss_avg/len(train_loader)})
+		print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}',end='\n')
 		if epoch % 1== 0:
 			# print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 			#Run the validation set and check the loss..
@@ -188,12 +188,12 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 				output_val = model(tensor_arr_val)
 				val_loss = criterion(output_val, tensor_arr_val)
 				val_loss_avg += val_loss.item()
-				wandb.log({"avg validation_loss": val_loss_avg/len(validation_loader)})
-				# print('Ran Validation Set, Loss: {:.4f}'.format(val_loss.item()))
+			wandb.log({"avg validation_loss": val_loss_avg/len(validation_loader)})
+			# print('Ran Validation Set, Loss: {:.4f}'.format(val_loss.item()))
 				
 	utils.diagnostic_print("Finished training, now saving both autoencoder and encoder...")
 	#Save the autoencoder..
-	torch.save(model.state_dict(), 'conv_autoencoder.pth')
+	torch.save(model.state_dict(), 'conv_autoencoder.pt')
 	#Save the encoder
 	encoder = model.encoder
 	torch.save(encoder, 'encoder.pt')
