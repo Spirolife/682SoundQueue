@@ -4,7 +4,7 @@
 
 import autoencoder
 import preprocessing
-# import rankingsystem
+import rankingsystem
 import torch
 import utils
 from torch import rand
@@ -58,7 +58,7 @@ encoded_train, encoded_test = autoencoder.get_encoded_data(train_set,test_set,va
 # encoder = autoencoder.get_encoder(train_set,validation_set=validation_set,wandb=wandb)
 
 # # 5,6,7,8 train the ranking system and evaluate the ranking
-# results = rankingsystem.get_ranking_results(encoded_train, encoded_test, validation_set)
+results = rankingsystem.get_ranking_results(encoded_train, encoded_test, validation_set)
 
 # # Print the results or save them to a file or produce needed graphs and save them
 # utils.diagnostic_print("Results: " + str(results))

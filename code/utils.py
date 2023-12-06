@@ -1,9 +1,10 @@
 # PURPOSE OF FILE: Utility functions for the soundqueue project. 
 # Mainly includes printing data, saving data/graphs, and displaying graphs
 
+import os
+
 import matplotlib.pyplot as plt
 import torch
-import os
 
 # Macros we may need for all files
 track_metadata = {}
