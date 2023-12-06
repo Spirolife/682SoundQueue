@@ -1,0 +1,1 @@
+{"train_config": {"lr": 0.001, "num_epochs": 20}, "_timestamp": 1701839493.0794342, "_runtime": 23.29542112350464, "_step": 208, "loss": 263.3842468261719, "_wandb": {"runtime": 22}}

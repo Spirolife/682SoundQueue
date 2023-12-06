@@ -1,0 +1,50 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.9.0",
+    "heartbeatAt": "2023-12-06T04:49:34.557797",
+    "startedAt": "2023-12-06T04:49:33.403053",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\Owner\\OneDrive\\Documents\\Schoolwork\\Grad Fall 2023\\682\\682SoundQueue\\code\\soundqueue.py",
+    "codePath": "code\\soundqueue.py",
+    "git": {
+        "remote": "https://github.com/Spirolife/682SoundQueue.git",
+        "commit": "c7e87e12258fe21353f61a8c38cc4e9e729071f5"
+    },
+    "email": "alenna.spiro@gmail.com",
+    "root": "C:/Users/Owner/OneDrive/Documents/Schoolwork/Grad Fall 2023/682/682SoundQueue",
+    "host": "Bhagini",
+    "username": "Alenna",
+    "executable": "C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python39\\python.exe",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 1400.0,
+        "min": 0.0,
+        "max": 2300.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 1400.0,
+            "min": 0.0,
+            "max": 2300.0
+        }
+    ],
+    "disk": {
+        "total": 476.32719802856445,
+        "used": 404.2122039794922
+    },
+    "gpu": "NVIDIA GeForce GTX 1660 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1660 Ti",
+            "memory_total": 6442450944
+        }
+    ],
+    "memory": {
+        "total": 13.93682861328125
+    }
+}

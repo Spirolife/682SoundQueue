@@ -24,7 +24,7 @@ import wandb
 # 7. Use the test set to produce a ranking
 # 8. Evaluate the ranking
 #Initialize a new wandb run
-wandb.init(project="baseline-sound-queue", config={
+wandb.init(project="sound-queue", entity="sound-queue", config={
     "learning_rate": 0.001,
     "architecture": "Convolutional Autoencoder",
     "dataset": "FMA",

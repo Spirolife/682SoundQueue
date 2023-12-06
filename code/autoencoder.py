@@ -56,16 +56,24 @@ def encode_dataset(encoder, train_set, test_set):
 	# 1. encode the train set
 	# 2. encode the test set
 	# 3. save the encoded train and test set for later use
-	encoded_train = []
-	for data in train_set:
-		tensor_arr = data
-		output = encoder(tensor_arr)
-		encoded_train.append(output)
-	encoded_test = []
-	for data in test_set:
-		tensor_arr = data
-		output = encoder(tensor_arr)
-		encoded_test.append(output)
+
+	train_set = custom_dataset.CustomDataset(train_set)
+	test_set = custom_dataset.CustomDataset(test_set)
+
+	train_loader = torch.utils.data.DataLoader(dataset=train_set, batch_size=1, shuffle=False)
+	test_loader = torch.utils.data.DataLoader(dataset=test_set, batch_size=1, shuffle=False)
+
+	encoded_train = torch.zeros((len(train_set), train_set.min_size))
+	encoded_test = torch.zeros((len(test_set), test_set.min_size))
+	# encode the train set
+	for i, data in enumerate(tqdm(train_loader)):
+		print(type(data))
+		encoded_train[i] = encoder(data)
+
+	# encode the test set
+	for i, data in enumerate(tqdm(test_loader)):
+		encoded_test[i] = encoder(data)
+
 	utils.diagnostic_print("Encoded train and test sets, saving...")
 	torch.save(encoded_train, "encoded_train.pt")
 	torch.save(encoded_test, "encoded_test.pt")
@@ -94,29 +102,30 @@ class Autoencoder(nn.Module):
 			nn.ReLU(True),
 			nn.MaxPool1d(kernel_size=2, stride=2),
 			nn.Flatten(),
-			nn.Linear(191, K),
+			nn.Linear(2500, K),
 			nn.ReLU(True),
 		)
 
 		# decoder is the reverse of the encoder, input (batch_size, K) -> output (batch_size, 3, min_size)
 		self.decoder = nn.Sequential(
-			nn.Linear(K, 191),
+			nn.Linear(K, 2500),
 			nn.ReLU(True),
-			nn.Unflatten(1, (1, 191)),
+			nn.Unflatten(1, (1, 2500)),
 			nn.ConvTranspose1d(1, 8, kernel_size=3, stride=2, padding=1, output_padding=1),
 			nn.ReLU(True),
 			nn.ConvTranspose1d(8, 16, kernel_size=3, stride=2, padding=1, output_padding=1),
 			nn.ReLU(True),
 			nn.ConvTranspose1d(16, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
 			nn.ReLU(True),
-			# now this is (batch_size, 3, 1528). change it to (batch_size, 3, 1530)
-			nn.ConstantPad1d((1, 1), 0),
 		)
 
 
 
 	def forward(self, x):
 		# print(x.shape)
+		if len(x.shape) == 2:
+			x = x.reshape(1, 3, -1)
+		print(x.shape)
 		x = self.encoder(x)
 		x = self.decoder(x)
 		# print(x.shape)
@@ -131,22 +140,16 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	test_set: Dataset Object of test data
 	Returns encoder from autoencoder model trained on train_set and validated on validation_set
 	"""
-
-	
-	#Define the dataloader
-	train_loader = torch.utils.data.DataLoader(dataset=train_set,batch_size=1,shuffle=True)
-	validation_loader = torch.utils.data.DataLoader(dataset=validation_set,batch_size=1,shuffle=True)
-	utils.diagnostic_print("Dataloaders created")
-
-	#Define the Model! NOTE: train_set[0].shape[0] is the size of the tensor
 	model = Autoencoder(K=train_set[0].shape[0]).to(device)
 
 	# Move the model to GPU
 	
 	print(f'Inside Train_autoencoder: device: {device}; Checking cuda is available:{torch.cuda.is_available()}')
 	model.to(device)
-	learning_rate = 0.001
+	learning_rate = 0.00001
 	num_epochs = 20
+	batch_size = 20
+
 	# Define the loss function and optimizer
 	criterion = torch.nn.MSELoss()
 	optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -156,11 +159,17 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	# wandb.log({"model": model})
 	wandb.log({"train_config": {'lr':learning_rate,'num_epochs':num_epochs}})
 	
+	#Define the dataloader
+	train_loader = torch.utils.data.DataLoader(dataset=train_set,batch_size=batch_size,shuffle=True)
+	validation_loader = torch.utils.data.DataLoader(dataset=validation_set,batch_size=batch_size,shuffle=True)
+	utils.diagnostic_print("Dataloaders created")
+	
 	utils.diagnostic_print("Loaded model, defined loss function and optimizer,Now training...")
 	print(f'TRAINING')
+
 	# Train the autoencoder and add tqdm.tqdm to see progress
 	for epoch in tqdm(range(num_epochs)):
-		for data in train_loader:
+		for data in train_loader:	
 			tensor_arr = data
 			optimizer.zero_grad()
 			output = model(tensor_arr)
@@ -168,16 +177,19 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 			loss.backward()
 			optimizer.step()
 			wandb.log({"loss": loss})
+		print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}',end='\r')
 		if epoch % 1== 0:
-			print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
+			# print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 			#Run the validation set and check the loss..
+			val_loss_avg = 0
 			for data_val in validation_loader:
 				tensor_arr_val = data_val
 				optimizer.zero_grad()
 				output_val = model(tensor_arr_val)
 				val_loss = criterion(output_val, tensor_arr_val)
-				wandb.log({"validation_loss": val_loss})
-				print('Ran Validation Set, Loss: {:.4f}'.format(val_loss.item()))
+				val_loss_avg += val_loss.item()
+				wandb.log({"avg validation_loss": val_loss_avg/len(validation_loader)})
+				# print('Ran Validation Set, Loss: {:.4f}'.format(val_loss.item()))
 				
 	utils.diagnostic_print("Finished training, now saving both autoencoder and encoder...")
 	#Save the autoencoder..

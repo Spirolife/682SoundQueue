@@ -42,6 +42,7 @@ def split_data(BASE_DIR):
     if os.path.exists(os.path.join(BASE_DIR, 'metadata.pt')):
         tracks_df = torch.load(os.path.join(BASE_DIR, 'metadata.pt'))
     else:
+        # NOTE: Issues: using tracks vs raw_tracks, we need to 
         # read in the csv file using pandas
         tracks_df = pandas.read_csv(tracks_path, header=[0, 1], index_col=None, skiprows=[2], encoding='utf-8', low_memory=False)
         # Get the column indices for the data we want.
