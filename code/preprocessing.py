@@ -89,24 +89,23 @@ def split_data(BASE_DIR):
             # Convert into a tensor, autoencoder-useable format
             audio_file_name = file.split(".")[0]
             audio_file_name = '{0:0>6}'.format(audio_file_name)
-            # converted_audio_file, lost = convert_audio(os.path.join(folder_path, file))
-            # I have decided i do not care enough about the lost files to do anything about them FUCK YOU
-            # if lost:
-            #     lost_to_errors += 1
-            #     continue
+            converted_audio_file, lost = convert_audio(os.path.join(folder_path, file))
+            if lost:
+                lost_to_errors += 1
+                continue
             # Save the audio file in the correct split set by checking the tracks_df. If the matching track_id has a set_split of training, save in train folder, etc.
             try:
                 tracks_df.loc[int(audio_file_name)]
                 sub_split = tracks_df.loc[int(audio_file_name)][("set", "split")] if tracks_df.loc[int(audio_file_name)][("set", "split")] != "training" else "train"
                 if sub_split == "train":
-                    # converted_train.append(converted_audio_file)
+                    converted_train.append(converted_audio_file)
                     # add to index_to_id df
                     index_to_track_id.loc[len(index_to_track_id.index)] = [sub_split, len(converted_train), tracks_df.loc[int(audio_file_name)][("general", "track_id")]]
                 elif sub_split == "test":
-                    # converted_test.append(converted_audio_file)
+                    converted_test.append(converted_audio_file)
                     index_to_track_id.loc[len(index_to_track_id.index)] = [sub_split, len(converted_test), tracks_df.loc[int(audio_file_name)][("general", "track_id")]]
                 elif sub_split == "validation":
-                    # converted_validation.append(converted_audio_file)
+                    converted_validation.append(converted_audio_file)
                     index_to_track_id.loc[len(index_to_track_id.index)] = [sub_split, len(converted_validation), tracks_df.loc[int(audio_file_name)][("general", "track_id")]]
                 else:
                     utils.diagnostic_print("!" + "Error: audio file " + audio_file_name + " not found in metadata, does not have a set_split")
@@ -116,9 +115,9 @@ def split_data(BASE_DIR):
                 continue
     # try saving the converted audio files
     try:
-        # torch.save(converted_train, os.path.join(BASE_DIR, "train.pt"))
-        # torch.save(converted_test, os.path.join(BASE_DIR, "test.pt"))
-        # torch.save(converted_validation, os.path.join(BASE_DIR, "validation.pt"))
+        torch.save(converted_train, os.path.join(BASE_DIR, "train.pt"))
+        torch.save(converted_test, os.path.join(BASE_DIR, "test.pt"))
+        torch.save(converted_validation, os.path.join(BASE_DIR, "validation.pt"))
         torch.save(index_to_track_id, os.path.join(BASE_DIR, "index_to_track_id.pt"))
     except Exception as e:
         utils.diagnostic_print("!" + "Error saving converted audio files")
@@ -132,7 +131,7 @@ def split_data(BASE_DIR):
 
     # Get the column indices for the data we want.
     # [genre_id, title, parent]
-    utils.genre_data = ["genre_id", "title", "parent"]
+    utils.genre_data = ["title", "parent"]
 
     # First reduce the dataframe to only the columns we want
     genres_df = genres_df[utils.genre_data]
@@ -142,8 +141,8 @@ def split_data(BASE_DIR):
     pbar3 = tqdm(total=num_lines, desc="Loading genres")
     genre_dict = {}
     for index, row in genres_df.iterrows():
-        # save all the genres into a dictionary
-        genre_dict[row["title"]] = row["genre_id"]
+        # save all the genres into a dictionary, genre_id is index column
+        genre_dict[index] = row["title"]
         pbar3.update(1)
 
     # Put the genre_dict into a file for loading later
@@ -153,10 +152,10 @@ def split_data(BASE_DIR):
         utils.diagnostic_print("!" + "Error saving genre_dict")
 
     utils.diagnostic_print("#" + "[Finished Loading Data into New Format..]")
-    return converted_train, converted_test, converted_validation, genre_dict
+    return converted_train, converted_test, converted_validation, tracks_df, genre_dict
 
 # Converts an audio file into a tensor. NOTE: This is where we can change the shape of the tensor for the autoencoder
-def convert_audio(dir, sr=22050):
+def convert_audio(dir, sr=1000):
     lost = False
     # Load the audio file
     try:
@@ -168,6 +167,7 @@ def convert_audio(dir, sr=22050):
     # Convert to tensor
     try:
         audio_tensor = torch.from_numpy(audio)
+        print(audio_tensor.shape)
     except Exception as e:
         utils.diagnostic_print("!" + "Error converting audio file to tensor: " + dir)
         return None, lost

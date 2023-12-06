@@ -9,6 +9,7 @@ import utils
 from torch import nn
 from tqdm import tqdm
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Called by main.py, trains the autoencoder and returns the encoded dataset
 def get_encoded_data(train_set, test_set, validation_set,wandb=None):
@@ -44,11 +45,9 @@ def get_encoder(train_set,validation_set,wandb=None):
 	else:
 		utils.diagnostic_print("Autoencoder not found, training...")
 		#create train dataset object
-		# remove any tensors that are not of shape > 660000
-		train_set = [tensor for tensor in train_set if tensor.shape[0] > 330000]
 		train_dataset =  custom_dataset.CustomDataset(train_set)
 		#create validation dataset object
-		validation_dataset = custom_dataset.CustomDataset(validation_set)
+		validation_dataset = custom_dataset.CustomDataset(validation_set, min_size=train_dataset.min_size)
 		return train_autoencoder(train_dataset,validation_set=validation_dataset,wandb=wandb)
 	
 
@@ -79,88 +78,50 @@ def encode_dataset(encoder, train_set, test_set):
 #         self.test_set = test_set
 #         self.validation_set = validation_set
 class Autoencoder(nn.Module):
-	def __init__(self):
+	def __init__(self, K ):
 		super(Autoencoder, self).__init__()
-		# input of size (1, 1, 330000)
-		# want encoded shape to be 320
+		# input of size (batch_size, 3, min_size), where 3 is the number of channels which is duplicated
+		# want encoded shape to be (batch_size, K). use 3 1d convolutions to get there
 
-		# Encoder
-
-		self.conv1 = nn.Conv1d(1, 4, kernel_size=3, stride=1, padding=1)
-		self.relu1 = nn.ReLU(True)
-		self.maxpool = nn.MaxPool1d(kernel_size=300, stride=2)
-		self.dropout1 = nn.Dropout(p=0.5)
-		self.fc1 = nn.Linear(4 * 164851, 50)
-		self.relu2 = nn.ReLU(True)
-		
 		self.encoder = nn.Sequential(
-			self.conv1,
-			self.relu1,
-			self.maxpool,
-			self.dropout1,
+			nn.Conv1d(3, 16, kernel_size=3, stride=1, padding=1),
+			nn.ReLU(True),
+			nn.MaxPool1d(kernel_size=2, stride=2),
+			nn.Conv1d(16, 8, kernel_size=3, stride=1, padding=1),
+			nn.ReLU(True),
+			nn.MaxPool1d(kernel_size=2, stride=2),
+			nn.Conv1d(8, 1, kernel_size=3, stride=1, padding=1),
+			nn.ReLU(True),
+			nn.MaxPool1d(kernel_size=2, stride=2),
 			nn.Flatten(),
-			self.fc1,
-			self.relu2
+			nn.Linear(191, K),
+			nn.ReLU(True),
 		)
 
-		# Decoder
-		self.fc3 = nn.Linear(50, 4 * 164851)
-		self.relu3 = nn.ReLU(True)
-		self.conv2 = nn.ConvTranspose1d(4, 1, kernel_size=3, stride=1, padding=1)
-		self.upsample = nn.Upsample(size=(330000), mode='nearest')
-		self.relu4 = nn.ReLU(True)
-
+		# decoder is the reverse of the encoder, input (batch_size, K) -> output (batch_size, 3, min_size)
 		self.decoder = nn.Sequential(
-			self.fc3,
-			self.relu3,
-			nn.Unflatten(1, (4, 164851)),
-			self.upsample,
-			self.conv2,
-			self.relu4
+			nn.Linear(K, 191),
+			nn.ReLU(True),
+			nn.Unflatten(1, (1, 191)),
+			nn.ConvTranspose1d(1, 8, kernel_size=3, stride=2, padding=1, output_padding=1),
+			nn.ReLU(True),
+			nn.ConvTranspose1d(8, 16, kernel_size=3, stride=2, padding=1, output_padding=1),
+			nn.ReLU(True),
+			nn.ConvTranspose1d(16, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
+			nn.ReLU(True),
+			# now this is (batch_size, 3, 1528). change it to (batch_size, 3, 1530)
+			nn.ConstantPad1d((1, 1), 0),
 		)
 
 
 
 	def forward(self, x):
-		print_all = False
-
-		if print_all:
-			# print(x.shape)
-			x = self.conv1(x)
-			# print(x.shape)
-			x = self.relu1(x)
-			# print(x.shape)
-			x = self.maxpool(x)
-			# print(x.shape)
-			x = self.dropout1(x)
-			# print(x.shape)
-			x = x.view(-1, 4 * 164851)
-			# print(x.shape)
-			x = self.fc1(x)
-			# print(x.shape)
-			x = self.relu2(x)
-			# print(x.shape)
-			x = self.fc3(x)
-			# print(x.shape)
-			x = self.relu3(x)
-			# print(x.shape)
-			x = x.view(-1, 4, 164851)
-			# print(x.shape)
-			x = self.conv2(x)
-			# print(x.shape)
-			x = self.upsample(x)
-			# print(x.shape)
-			x = self.relu4(x)
-			# print(x.shape)
-		else:
-			x = self.encoder(x)
-			x = self.decoder(x)
+		# print(x.shape)
+		x = self.encoder(x)
+		x = self.decoder(x)
+		# print(x.shape)
 
 		return x
-
-
-	
-	
 
 
 def train_autoencoder(train_set, validation_set, wandb=None):
@@ -170,15 +131,18 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	test_set: Dataset Object of test data
 	Returns encoder from autoencoder model trained on train_set and validated on validation_set
 	"""
-	#Define the Model!
-	model = Autoencoder()
+
 	
 	#Define the dataloader
 	train_loader = torch.utils.data.DataLoader(dataset=train_set,batch_size=1,shuffle=True)
 	validation_loader = torch.utils.data.DataLoader(dataset=validation_set,batch_size=1,shuffle=True)
 	utils.diagnostic_print("Dataloaders created")
+
+	#Define the Model! NOTE: train_set[0].shape[0] is the size of the tensor
+	model = Autoencoder(K=train_set[0].shape[0]).to(device)
+
 	# Move the model to GPU
-	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+	
 	print(f'Inside Train_autoencoder: device: {device}; Checking cuda is available:{torch.cuda.is_available()}')
 	model.to(device)
 	learning_rate = 0.001

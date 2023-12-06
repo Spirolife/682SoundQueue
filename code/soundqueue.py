@@ -33,7 +33,7 @@ wandb.init(project="baseline-sound-queue", config={
 
 
 # 1 and 2, load and preprocess the dataset
-train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data(overwrite_data=False)
+train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data()
 
 # exit()
 
