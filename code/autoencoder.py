@@ -47,7 +47,7 @@ def get_encoder(train_set,validation_set,wandb=None):
 		#create train dataset object
 		train_dataset =  custom_dataset.CustomDataset(train_set)
 		#create validation dataset object
-		validation_dataset = custom_dataset.CustomDataset(validation_set, min_size=train_dataset.min_size)
+		validation_dataset = custom_dataset.CustomDataset(validation_set)
 		return train_autoencoder(train_dataset,validation_set=validation_dataset,wandb=wandb)
 	
 
@@ -88,45 +88,32 @@ def encode_dataset(encoder, train_set, test_set, K=500):
 class Autoencoder(nn.Module):
 	def __init__(self, K):
 		super(Autoencoder, self).__init__()
-		# input of size (batch_size, 3, min_size), where 3 is the number of channels which is duplicated
-		# want encoded shape to be (batch_size, K). use 3 1d convolutions to get there
-
+		
+		# recreate above in pytorch
 		self.encoder = nn.Sequential(
-			nn.Conv1d(3, 16, kernel_size=3, stride=1, padding=1),
-			nn.ReLU(True),
-			nn.MaxPool1d(kernel_size=2, stride=2),
-			nn.Conv1d(16, 8, kernel_size=3, stride=1, padding=1),
-			nn.ReLU(True),
-			nn.MaxPool1d(kernel_size=2, stride=2),
-			nn.Conv1d(8, 1, kernel_size=3, stride=1, padding=1),
-			nn.ReLU(True),
-			nn.MaxPool1d(kernel_size=2, stride=2),
+			nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),
+			nn.ReLU(),
+			nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+			nn.ReLU(),
 			nn.Flatten(),
-			nn.Linear(2500, K),
-			nn.ReLU(True),
+			nn.Linear(64*32*15, K)
 		)
 
-		# decoder is the reverse of the encoder, input (batch_size, K) -> output (batch_size, 3, min_size)
+
 		self.decoder = nn.Sequential(
-			nn.Linear(K, 2500),
-			nn.ReLU(True),
-			nn.Unflatten(1, (1, 2500)),
-			nn.ConvTranspose1d(1, 8, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.ReLU(True),
-			nn.ConvTranspose1d(8, 16, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.ReLU(True),
-			nn.ConvTranspose1d(16, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
-			nn.ReLU(True),
+			nn.Linear(K, 64*32*15),
+			nn.ReLU(),
+			nn.Unflatten(1, (64, 32, 15)),
+			nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+			nn.ReLU(),
+			nn.ConvTranspose2d(32, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
 		)
-
-
 
 	def forward(self, x):
-		# print(x.shape)
+
 		x = self.encoder(x)
-		# print(x.shape)
 		x = self.decoder(x)
-		# print(x.shape)
+		print(x.shape)
 
 		return x
 
@@ -138,19 +125,20 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	test_set: Dataset Object of test data
 	Returns encoder from autoencoder model trained on train_set and validated on validation_set
 	"""
-	model = Autoencoder(K=500).to(device)
+	model = Autoencoder(K=5000).to(device)
 
 	# Move the model to GPU
 	
 	print(f'Inside Train_autoencoder: device: {device}; Checking cuda is available:{torch.cuda.is_available()}')
 	model.to(device)
-	learning_rate = 1e-8
+	learning_rate = 1e-7
 	num_epochs = 100
-	batch_size = 20
+	batch_size = 50
 
 	# Define the loss function and optimizer
-	criterion = torch.nn.MSELoss()
-	optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+	criterion =	nn.MSELoss()
+	optimizer = torch.optim.LBFGS(model.parameters(), lr=learning_rate, max_iter=100, max_eval=100, history_size=100, line_search_fn='strong_wolfe')
+	# optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 	# wandb.log({"optimizer": optimizer})
 	# wandb.log({"criterion": criterion})
 	# wandb.log({"device": device})
@@ -169,12 +157,14 @@ def train_autoencoder(train_set, validation_set, wandb=None):
 	for epoch in tqdm(range(num_epochs)):
 		loss_avg = 0
 		for data in train_loader:	
-			tensor_arr = data
-			optimizer.zero_grad()
-			output = model(tensor_arr)
-			loss = criterion(output, tensor_arr)
-			loss.backward()
-			optimizer.step()
+			def closure():
+				tensor_arr = data
+				optimizer.zero_grad()
+				output = model(tensor_arr)
+				loss = criterion(output, tensor_arr)
+				loss.backward()
+				return loss
+			loss = optimizer.step(closure)
 			loss_avg += loss.item()
 		wandb.log({"avg loss": loss_avg/len(train_loader)})
 		print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}',end='\n')
