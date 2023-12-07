@@ -168,60 +168,15 @@ cython_debug/
 
 #Remove Wandb stuff
 .wandb/
--
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+
 datasets/fma/train.pt
 datasets/fma/test.pt
 datasets/fma/validation.pt
 datasets/fma/index_to_track_id.pt
-wandb/run-20231107_135643-sjuelwvq/files/wandb-metadata.json
-wandb/run-20231107_135643-sjuelwvq/files/wandb-summary.json
-wandb/run-20231107_135740-g2u9g5co/run-g2u9g5co.wandb
-wandb/run-20231107_135740-g2u9g5co/files/config.yaml
-wandb/run-20231107_135643-sjuelwvq/files/config.yaml
-wandb/run-20231107_135643-sjuelwvq/run-sjuelwvq.wandb
-wandb/run-20231107_135643-sjuelwvq/files/requirements.txt
-wandb/run-20231107_135740-g2u9g5co/files/wandb-metadata.json
+
 
 
 *.pt
 *.pth
 *.json
 *.wandb
-wandb/run-20231206_030536-nq0p562q/files/config.yaml
-wandb/run-20231206_030536-nq0p562q/files/requirements.txt
-wandb/run-20231206_030623-gkcdx5at/files/config.yaml
-wandb/run-20231206_030623-gkcdx5at/files/requirements.txt
-wandb/run-20231206_030740-282u3wtk/files/config.yaml
-wandb/run-20231206_030740-282u3wtk/files/requirements.txt
-wandb/run-20231206_031111-2oebw00j/files/config.yaml
-wandb/run-20231206_031111-2oebw00j/files/requirements.txt
-wandb/run-20231206_031446-16zw7m0l/files/config.yaml
-wandb/run-20231206_031446-16zw7m0l/files/requirements.txt
-wandb/run-20231206_031647-lhj0darp/files/config.yaml
-wandb/run-20231206_031647-lhj0darp/files/requirements.txt
-wandb/run-20231206_032456-um2ivybr/files/config.yaml
-wandb/run-20231206_032456-um2ivybr/files/requirements.txt
-wandb/run-20231206_034349-64942a9z/files/config.yaml
-wandb/run-20231206_034349-64942a9z/files/requirements.txt
-wandb/run-20231206_034459-jie91hkx/files/config.yaml
-wandb/run-20231206_034459-jie91hkx/files/requirements.txt
-wandb/run-20231206_034556-416vn0sl/files/config.yaml
-wandb/run-20231206_034556-416vn0sl/files/requirements.txt
-wandb/run-20231206_034729-85ki4ob8/files/config.yaml
-wandb/run-20231206_034729-85ki4ob8/files/requirements.txt
-wandb/run-20231206_125705-l3j729fm/files/config.yaml
-wandb/run-20231206_125705-l3j729fm/files/requirements.txt
-wandb/run-20231206_151710-9ugsfpvv/files/config.yaml
-wandb/run-20231206_151710-9ugsfpvv/files/requirements.txt
-wandb/run-20231206_151916-q27whmup/files/config.yaml
-wandb/run-20231206_151916-q27whmup/files/requirements.txt
-wandb/run-20231206_152141-066g4rjz/files/config.yaml
-wandb/run-20231206_152141-066g4rjz/files/requirements.txt
-encoder.pt
-encoder.pt

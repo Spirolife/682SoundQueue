@@ -2,30 +2,27 @@
 
 #importing libraries
 import torch
+import torchvision
 import torch.utils.data as data
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class CustomDataset(torch.utils.data.Dataset):
-    def __init__(self, list_of_tensors, min_size=20000, transform=None):
+    def __init__(self, list_of_tensors, transform=None):
         self.transform = transform
         # if the item is not none and is of size > 20,000, add it to the list of tensors
-        self.data = [item[:min_size] for item in list_of_tensors if item is not None and item.shape[0] > 20000]
-        self.min_size = min_size
+        self.data = [tensor for tensor in list_of_tensors if tensor is not None and tensor.shape[1] == 60]
 
 
     def __getitem__(self, idx):
-        item = self.data[idx]
-        #Truncate all of the tensors to a shape of 660000
-        item = item[:self.min_size].reshape(1, -1)
-        # tile the tensor to a shape of batch_size, 3, 20000
-        item = torch.cat((item, item, item), 0)
-
-        # data is super small numbers, so we need to scale it up
-        item = item * 100
-        # print("item shape: " + str(item.shape))
-
-        item = item.to(device)
+        item = self.data[idx].reshape(1, 1, 128, 60)
+        # add gaussian noise blur
+        transform = torchvision.transforms.GaussianBlur((3,3))
+        item = transform(item)
+        item = item.reshape(1, 128, 60)
+        # make 3 channels of img
+        item = torch.stack((item, item, item), dim=1)
+        item = item.squeeze(0)
         return item
     
     def __len__(self):

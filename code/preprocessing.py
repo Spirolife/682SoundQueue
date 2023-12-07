@@ -157,11 +157,12 @@ def split_data(BASE_DIR):
     return converted_train, converted_test, converted_validation, tracks_df, genre_dict
 
 # Converts an audio file into a tensor. NOTE: This is where we can change the shape of the tensor for the autoencoder
-def convert_audio(dir, sr=1000):
+def convert_audio(dir, sr=1010):
     lost = False
     # Load the audio file
     try:
         audio, sr = librosa.load(dir, sr=sr)
+        audio = librosa.feature.melspectrogram(y=audio, sr=sr)
     except Exception as e:
         utils.diagnostic_print("!" + "Error loading audio file: " + dir)
         return None, lost
@@ -169,7 +170,7 @@ def convert_audio(dir, sr=1000):
     # Convert to tensor
     try:
         audio_tensor = torch.from_numpy(audio)
-        print(audio_tensor.shape)
+        # print(audio_tensor.shape)
     except Exception as e:
         utils.diagnostic_print("!" + "Error converting audio file to tensor: " + dir)
         return None, lost
