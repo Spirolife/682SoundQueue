@@ -2,6 +2,7 @@
 
 #importing libraries
 import torch
+import torchvision
 import torch.utils.data as data
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -14,12 +15,14 @@ class CustomDataset(torch.utils.data.Dataset):
 
 
     def __getitem__(self, idx):
-        item = self.data[idx]
+        item = self.data[idx].reshape(1, 1, 128, 60)
+        # add gaussian noise blur
+        transform = torchvision.transforms.GaussianBlur((3,3))
+        item = transform(item)
+        item = item.reshape(1, 128, 60)
         # make 3 channels of img
-        item = torch.stack((item, item, item), dim=0)
-        # if self.transform:
-        #     item = self.transform(item)
-        item = item.to(device)
+        item = torch.stack((item, item, item), dim=1)
+        item = item.squeeze(0)
         return item
     
     def __len__(self):
