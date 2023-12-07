@@ -9,6 +9,7 @@ import torch
 # Macros we may need for all files
 track_metadata = {}
 genre_data = {}
+data_base_dir= os.path.join('.', 'datasets', 'fma')
 
 # Shows a plot and saves it to the specified path
 def show_wait_destroy(item):

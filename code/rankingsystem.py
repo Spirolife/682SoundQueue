@@ -1,6 +1,7 @@
 # PURPOSE OF FILE: Contains the scoring/ranking system for the soundqueue project.
 
 import itertools
+import os
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,32 @@ import torch
 import utils
 
 
+def reorder_data(encoded_test,index_to_track_id,track_df):
+    """Get all rows of test data in track_df and reorder them to match the order of encoded_test using index to track id
+    For each test example in encoded_Test, get the corresponding row in track_df and reorder them to match the order of encoded_test.
+    
+    Args:
+        encoded_test (_type_): _description_
+        index_to_track_id (_type_): _description_
+        track_df (_type_): _description_
+    return df of reordered test data
+    """
+    #Get the track_ids of encoded_test
+    test_track_ids = index_to_track_id["test", :, "track_id"]
+    
+    #Get only the test rows in track_df and also the split column == test
+    test_rows = track_df[track_df["track_id"].isin(test_track_ids)]
+    
+    #Get the indices of the test rows in track_df
+    test_rows_indices = test_rows.index
+    
+    #Reorder the test rows in track_df to match the order of encoded_test
+    reordered_test_rows = test_rows.iloc[test_rows_indices]
+    
+    return reordered_test_rows
+
+    
+    
 def get_cosine_ranking(encoded_train, encoded_test, track_df, index_to_track_id, genres_df, k=10):
     # NOTE: genres_df is for us to visually compare the genres of the top k results with the actual test genres, so we can see how well the model is doing
     # it isnt used for the actual ranking system
@@ -15,6 +42,8 @@ def get_cosine_ranking(encoded_train, encoded_test, track_df, index_to_track_id,
     # Use torch cosine similarity: https://pytorch.org/docs/stable/generated/torch.nn.CosineSimilarity.html
 
     # for each test song of shape (128, 32, 32), create a matrix of size (N, 128, 32, 32) where N is the number of songs in the training set
+    
+    
     # then, use cosine similarity to get a matrix of size (N, 1) where each value is the cosine similarity between the test song and the corresponding training song
     cosine_similarity_model = torch.nn.CosineSimilarity(dim=2, eps=1e-6)
 
@@ -51,7 +80,22 @@ def get_cosine_ranking(encoded_train, encoded_test, track_df, index_to_track_id,
     # index_to_track_id has columns: [sub_split, index, track_id] so accessing test songs is index_to_track_id["test", :, "track_id"]
     # then use the track_id to get the genres of the test songs, where track_df has columns: [track_id, ..., all_genres]
     # in track_df, the track_id is NOT the index, so we have to use iloc to get the row of the track_id
-    test_genres = track_df[track_df.isin(index_to_track_id["test", :, "track_id"])].iloc[:, -1].values
+    test_data = reorder_data(encoded_test,index_to_track_id,track_df)
+    print(f'Num test examples: {len(test_data)}')
+    
+    #Ensure the order of the data is correct by printing the index_to_track_id and test_data 
+    print(f'index_to_track_id: {index_to_track_id}')
+    print(f'test_data: {test_data}')
+    
+    
+    
+    #Print columns of test_data
+    print(f'Columns of test_data: {test_data.columns}')
+    print(f'Columns of track_df: {track_df.columns}')
+    
+    test_genres = test_data.iloc[:,-1].values ##TODO: Fix this to select the correct column.. instead of -1..
+    
+    
     print("Test genres: {}".format(test_genres))
     print("Top match genres: {}".format(track_df.iloc[top_k.indices[:,0].numpy()]["all_genres"].values))
 
@@ -59,6 +103,7 @@ def get_cosine_ranking(encoded_train, encoded_test, track_df, index_to_track_id,
     top_metadata = track_df.iloc[top_k.indices.numpy().flatten()]
     utils.diagnostic_print("Shape of top k metadata for each test: {}".format(top_metadata.shape))
 
+    exit()
     # compare genres of top suggestions with actual test genres
     top_k_genres = top_metadata["all_genres"].values
     utils.diagnostic_print("Shape of top k genres for each test: {}".format(top_k_genres.shape))
@@ -129,14 +174,19 @@ def get_top_k_mixed_ranking(encoded_train,encoded_test,track_df, index_to_track_
     big_encoded_train = f_encoded_train.unsqueeze(1).repeat(1, f_encoded_test.shape[0], 1)
     # utils.diagnostic_print("Shape of duplicated encoded_train: {}".format(big_encoded_train.shape))
 
+    
+    test_data = reorder_data(encoded_test,index_to_track_id,track_df)
+    print(f'Num test examples: {len(test_data)}')
+    
     #get test genres using track_df
-    test_genres = track_df[track_df.isin(index_to_track_id["test", :, "track_id"])].iloc[:, -1].values
+    test_genres =  test_data.iloc[:, -1].values ##TODO: Fix this to select the correct column.. instead of -1..
     print("Test genres: {}".format(test_genres))
     
     #get the test artists using track_df
-    test_artists = track_df[track_df.isin(index_to_track_id["test", :, "track_id"])].iloc[:, -1].values
-    # track_df[track_df.isin(index_to_track_id["test", :, "track_id"])].iloc[:, -1].values
+    test_artists = test_data ##TODO: Fix this to select the correct column.. instead of -1..
     print("Test artists: {}".format(test_artists))
+    
+    # exit()
     # compare genres of top suggestions with actual test genres
     top_k_genres = track_df["all_genres"].values
     
@@ -276,7 +326,8 @@ def get_ranking_results(encoded_train,encoded_test):
     genres_df = utils.genre_data
     # 3. Load in the track ids from the index_to_track_id.pt file
     try:
-        index_to_track_id = torch.load("index_to_track_id.pt")
+        index_to_track_id = torch.load(os.path.join(utils.data_base_dir, "index_to_track_id.pt"))
+            # "index_to_track_id.pt")
     except Exception as e:
         utils.diagnostic_print("!" + "Error loading index_to_track_id.pt")
         raise e

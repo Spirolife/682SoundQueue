@@ -24,7 +24,7 @@ def get_data(overwrite_data=False):
 
     return train_data, test_data, val_data, tracks_df, genre_data
     
-
+    
 # Converts the original FMA data into a format that can be used by the autoencoder
 # Splits into train, test, val, with subfolders of audio and metadata, where audio and metadata files are named the same
 def split_data(BASE_DIR):
@@ -119,6 +119,7 @@ def split_data(BASE_DIR):
         torch.save(converted_train, os.path.join(BASE_DIR, "train.pt"))
         torch.save(converted_test, os.path.join(BASE_DIR, "test.pt"))
         torch.save(converted_validation, os.path.join(BASE_DIR, "validation.pt"))
+        print(f'Saving index_to_track_id to path: {os.path.join(BASE_DIR, "index_to_track_id.pt")}')
         torch.save(index_to_track_id, os.path.join(BASE_DIR, "index_to_track_id.pt"))
     except Exception as e:
         utils.diagnostic_print("!" + "Error saving converted audio files")

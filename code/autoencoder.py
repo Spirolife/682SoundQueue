@@ -15,14 +15,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def get_encoded_data(train_set, test_set, validation_set,wandb=None):
 	# Check if encoded_train, encoded_test already exist
 	try: 
-		encoded_train = torch.load("encoded_train.pt")
-		encoded_test = torch.load("encoded_test.pt")
+		encoded_train = torch.load("encoded_train.pt", map_location=torch.device('cpu'))
+		encoded_test = torch.load("encoded_test.pt", map_location=torch.device('cpu'))
 		utils.diagnostic_print("Encoded train and test sets found, loading...")
 		return encoded_train, encoded_test
 	
 	except:
 		utils.diagnostic_print("Encoded train and test sets not found, training autoencoder...")
-
+		print(f'Inside get_encoded_data: device: {device}; Checking cuda is available:{torch.cuda.is_available()}')
 		encoder = get_encoder(train_set, validation_set,wandb)
 
 		utils.diagnostic_print("Encoder found, encoding train and test sets...")
@@ -45,7 +45,7 @@ def get_encoder(train_set,validation_set,wandb=None):
 	if os.path.exists("encoder.pt"):
 		# raise Exception("Force retrain")
 		utils.diagnostic_print("encoder found, loading...")
-		return torch.load("encoder.pt")
+		return torch.load("encoder.pt", map_location=torch.device('cpu'))
 	else:
 		utils.diagnostic_print("Autoencoder not found, training...")
 		#create train dataset object
