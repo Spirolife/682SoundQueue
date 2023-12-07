@@ -97,5 +97,24 @@ def split_audio_files_in_folder(folder_path, output_folder_path,csv_path):
     # utils.diagnostic_print("Number of files not found: " + str(num_files_not_found))
 
     
+def test_experiments():
+    """
+    Tests the experiments by running the pipeline on a small subset of the dataset
+    """
+    #Split all files in the folder into 30 second chunks
+    split_audio_files_in_folder("/home/abhinav/Documents/CS7643_Group_Project/data/fma_small","/home/abhinav/Documents/CS7643_Group_Project/data/fma_small_chunks","/home/abhinav/Documents/CS7643_Group_Project/data/fma_small_info.csv")
+    test_set = 
+    
+    #Run the pipeline on the chunks
+    test_experiment_hyperparameters() #To Decide which hyperparameters to use for ranking system. 
+    test_exp_chunk_value() #to see which input works best..
+    
+    
+def test_experiment_hyperparameters():
+    
+def test_exp_chunk_value():
+    
+    
+    
     
     

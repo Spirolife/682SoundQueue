@@ -24,7 +24,7 @@ def get_data(overwrite_data=False):
 
     return train_data, test_data, val_data, tracks_df, genre_data
     
-
+    
 # Converts the original FMA data into a format that can be used by the autoencoder
 # Splits into train, test, val, with subfolders of audio and metadata, where audio and metadata files are named the same
 def split_data(BASE_DIR):
