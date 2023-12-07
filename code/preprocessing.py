@@ -119,6 +119,7 @@ def split_data(BASE_DIR):
         torch.save(converted_train, os.path.join(BASE_DIR, "train.pt"))
         torch.save(converted_test, os.path.join(BASE_DIR, "test.pt"))
         torch.save(converted_validation, os.path.join(BASE_DIR, "validation.pt"))
+        print(f'Saving index_to_track_id to path: {os.path.join(BASE_DIR, "index_to_track_id.pt")}')
         torch.save(index_to_track_id, os.path.join(BASE_DIR, "index_to_track_id.pt"))
     except Exception as e:
         utils.diagnostic_print("!" + "Error saving converted audio files")

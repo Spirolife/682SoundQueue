@@ -41,7 +41,7 @@ train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data
 #NOTE: Check how the model works with dataset inputs (each tensor) of different sizes and ensure it gets truncation!
 
 #Could Call the function with True, but that would rerun the preprocessing which would take a lot of time:
-#So dont run this : train_set, test_set, validation_set, genre_data = preprocessing.get_data(True)
+# So dont run this : train_set, test_set, validation_set, genre_data = preprocessing.get_data(True)
 utils.genre_data = genre_df
 
 # Print important information about the dataset 
@@ -58,7 +58,7 @@ encoded_train, encoded_test = autoencoder.get_encoded_data(train_set,test_set,va
 # encoder = autoencoder.get_encoder(train_set,validation_set=validation_set,wandb=wandb)
 
 # # 5,6,7,8 train the ranking system and evaluate the ranking
-results = rankingsystem.get_ranking_results(encoded_train, encoded_test, validation_set)
+results = rankingsystem.get_ranking_results(encoded_train, encoded_test)
 
 # # Print the results or save them to a file or produce needed graphs and save them
 # utils.diagnostic_print("Results: " + str(results))
