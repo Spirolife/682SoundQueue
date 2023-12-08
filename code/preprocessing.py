@@ -11,6 +11,22 @@ from tqdm import tqdm
 
 # TODO: Need a tensor to metadata link, saving track_id
 
+def load_user_data():
+    BASE_DIR = os.path.join('.', 'datasets', 'fma')
+    USER_DIR = os.path.join(BASE_DIR, 'user_suggestions')
+
+    # load in all the songs in the user_suggestions folder, converting with convert_audio
+    converted_user_suggestions = []
+    file_names = []
+    for file in os.listdir(os.path.join(USER_DIR)):
+        file_names.append(file)
+        converted_audio_file, lost = convert_audio(os.path.join(USER_DIR, file))
+        if lost:
+            print("lost")
+        converted_user_suggestions.append(converted_audio_file)
+
+    return file_names, converted_user_suggestions
+
 def get_data(overwrite_data=False):
     BASE_DIR = os.path.join('.', 'datasets', 'fma')
     #     BASE_DIR = os.path.join('..', 'datasets', 'fma')

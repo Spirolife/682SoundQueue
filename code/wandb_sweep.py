@@ -29,9 +29,9 @@ sweep_configuration = {
     "method": "random",
     "metric": {"goal": "minimize", "name": "score"},
     "parameters": {
-        "k": {"distribution": "int_uniform", "min": 250, "max": 350},
-        "learning_rate": {"distribution": "uniform", "min": 0.00001, "max": 0.001},
-        "weight_decay": {"distribution": "uniform", "min": 0.00000001, "max": 0.00001},
+        "k": {"distribution": "int_uniform", "min": 100, "max": 500},
+        "learning_rate": {"distribution": "uniform", "min": 0.00001, "max": 0.0001},
+        "weight_decay": {"distribution": "uniform", "min": 0.000001, "max": 0.00001},
         # num_epochs stay at 100 for now
         "num_epochs": {"values": [100]},
         "batch_size": {"values": [100]}
