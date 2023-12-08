@@ -148,7 +148,7 @@ def test_experiment_hyperparameters(encoded_train,encoded_test,k_val=5):
         w_cos = w_cos/sum_total
         w_art = w_art/sum_total
         w_gen = w_gen/sum_total
-        
+        #TODO:possibly might need to change the output directory 
         output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}"
         process_done_bool = RankingSystem.get_mixed_ranking_results(output_csv_prefix,encoded_train,encoded_test,w_cos,w_art,w_gen,k_val=k_val)
         if not process_done_bool:
@@ -174,24 +174,28 @@ def test_exp_chunk_value(encoded_train,train_set,use_previous_files,expected_enc
                 nameof_file = file.split("/")[-1].split(".")[0]
                 encoded_test = torch.load(file, map_location=torch.device('cpu'))
                 utils.diagnostic_print(f'{file} found, loading...')
-                output_csv_prefix = nameof_file
+                
+                if nameof_file.endswith("1"):
+                    output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}_chunk_1"
+                elif nameof_file.endswith("2"):
+                    output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}_chunk_2"
+                elif nameof_file.endswith("3"):
+                    output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}_chunk_3"
+                else:
+                    utils.raise_error("File name does not end with 1,2 or 3")
                 process_done_bool = RankingSystem.get_mixed_ranking_results(output_csv_prefix,encoded_train,encoded_test,w_cos,w_art,w_gen,k_val=k_val)
     else:
         #Train from data stuff.
         for i, folder_path in enumerate([folder_path_1,folder_path_2,folder_path_3]):
-            test_data = preprocessing.get_test_data(folder_path_1,custom_csv)
+            test_data = preprocessing.get_test_data(folder_path,custom_csv)
             encoded_train, encoded_test = Autoencoder.get_encoded_data(train_set,test_data,val_set=test_data,wandb=wandb)
-            
-if nameof_file.endswith("1"):
-    output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}_chunk_1"
-elif nameof_file.endswith("2"):
-    output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}_chunk_2"
-elif nameof_file.endswith("3"):
-    output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}_chunk_3"
-else:
-    utils.raise_error("File name does not end with 1,2 or 3")
-process_done_bool = RankingSystem.get_mixed_ranking_results(output_csv_prefix,encoded_train,encoded_test,w_cos,w_art,w_gen,k_val=5)
-
+            output_csv_prefix = f"out_w_cos:{w_cos}_w_art:{w_art}_w_gen:{w_gen}_chunk_{i+1}"
+            process_done_bool = RankingSystem.get_mixed_ranking_results(output_csv_prefix,encoded_train,encoded_test,w_cos,w_art,w_gen,k_val=k_val)
+            if not process_done_bool:
+                utils.raise_error(f"iteration number:{i},Could not get mixed ranking results for hyperparameters: " + str(w_cos) + " " + str(w_art) + " " + str(w_gen))
+ 
+if __name__ == "__main__":
+    test_experiments()
 
 
 
