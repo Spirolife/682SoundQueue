@@ -12,11 +12,18 @@ from tqdm import tqdm
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Called by main.py, trains the autoencoder and returns the encoded dataset
-def get_encoded_data(train_set, test_set, validation_set,wandb=None):
+def get_encoded_data(train_set, test_set, validation_set,wandb=None,expected_encoded_test_file=None):
 	# Check if encoded_train, encoded_test already exist
 	try: 
 		encoded_train = torch.load("encoded_train.pt", map_location=torch.device('cpu'))
-		encoded_test = torch.load("encoded_test.pt", map_location=torch.device('cpu'))
+		if expected_encoded_test_file is not None and not os.path.exists(expected_encoded_test_file):
+			utils.diagnostic_print(f'{expected_encoded_test_file} not found, loading "encoded_test.pt"')
+		if expected_encoded_test_file is not None and os.path.exists(expected_encoded_test_file):
+			encoded_test = torch.load(expected_encoded_test_file, map_location=torch.device('cpu'))
+			utils.diagnostic_print(f'{expected_encoded_test_file} found, loading...')
+		else:
+			encoded_test = torch.load("encoded_test.pt", map_location=torch.device('cpu'))
+			utils.diagnostic_print(f'loading "encoded_test.pt"')
 		utils.diagnostic_print("Encoded train and test sets found, loading...")
 		return encoded_train, encoded_test
 	

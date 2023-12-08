@@ -103,7 +103,7 @@ def get_cosine_ranking(encoded_train, encoded_test, track_df, index_to_track_id,
     top_metadata = track_df.iloc[top_k.indices.numpy().flatten()]
     utils.diagnostic_print("Shape of top k metadata for each test: {}".format(top_metadata.shape))
 
-    exit()
+    # exit()
     # compare genres of top suggestions with actual test genres
     top_k_genres = top_metadata["all_genres"].values
     utils.diagnostic_print("Shape of top k genres for each test: {}".format(top_k_genres.shape))
@@ -261,7 +261,7 @@ def get_top_k_mixed_ranking(encoded_train,encoded_test,track_df, index_to_track_
     return top_k_avg_scores, final_scores, num_matching_genres, percentage_matching_genres, total_accuracy_artist_based, total_accuracy_genre_based
 
 
-def top_k_to_csv(top_k, track_df,index_to_track_id, k,cosine_only=False):
+def top_k_to_csv(output_csv_prefix,top_k, track_df,index_to_track_id, k,cosine_only=False,outside_example_df=None,outside_examples=False,):
     """
     Creates a csv named f'predictions{k}CosineOnly.csv' if consine_only is True, else f'predictions{k}Mixed.csv
     with the top k results for each test song and their metadata
@@ -273,10 +273,12 @@ def top_k_to_csv(top_k, track_df,index_to_track_id, k,cosine_only=False):
     """
     #Decide the output csv file name
     if cosine_only:
-        output_csv_name = f'predictions{k}CosineOnly.csv'
+        output_csv_name = output_csv_prefix+'CosineOnly.csv'
     else:
-        output_csv_name = f'predictions{k}Mixed.csv'
+        output_csv_name = output_csv_prefix+'Mixed.csv'
     
+    if outside_examples and outside_example_df is None:
+        utils.diagnostic_print("!" + "Error: outside_example_csv is None")
     #Filter the track_df to only show the following columns : [("general", "track_id"),("album", "title"), ("artist", "name"), ("set", "split"), ("set", "subset"), ("track", "genres_all"), ("track", "title")])
     
     filtered_track_df = track_df[("general", "track_id"),("album", "title"), ("artist", "name"), ("set", "split"), ("set", "subset"), ("track", "genres_all"), ("track", "title")]
@@ -286,11 +288,15 @@ def top_k_to_csv(top_k, track_df,index_to_track_id, k,cosine_only=False):
     # output_df = pd.DataFrame(columns=[("general", "track_id"),("album", "title"), ("artist", "name"), ("set", "split"), ("set", "subset"), ("track", "genres_all"), ("track", "title")])
     
     #Get the track_ids of the test songs
-    test_track_ids = index_to_track_id["test", :, "track_id"]
+    if outside_example_df is not None and outside_examples:
+        test_track_ids = outside_example_df["track_id"]
+        test_example_rows = outside_example_df
+    else:
+        test_track_ids = index_to_track_id["test", :, "track_id"]
+        #Get the actual rows of the test songs in filtered track_df.
+        test_example_rows = filtered_track_df[filtered_track_df["track_id"].isin(test_track_ids)]
     
-    #Get the actual rows of the test songs in filtered track_df.
-    test_example_rows = filtered_track_df[filtered_track_df["track_id"].isin(test_track_ids)]
-    
+    #This is for training examples
     #Get the actual rows of the top k results in filtered track_df. for each test example
     top_k_rows = filtered_track_df.iloc[top_k.indices.numpy().flatten()]
     print(f'Shape of top k rows: {top_k_rows.shape}')
@@ -316,10 +322,8 @@ def top_k_to_csv(top_k, track_df,index_to_track_id, k,cosine_only=False):
     utils.diagnostic_print(f'Successfully wrote the results to the csv file named:{output_csv_name}')
     return True
     
-    
-    
 
-def get_ranking_results(encoded_train,encoded_test):
+def get_mixed_ranking_results(output_csv_prefix,encoded_train,encoded_test,w_cos,w_art,w_gen,k_val=5):
     # 1. Load in the track metadata
     track_df = utils.track_metadata
     # 2. Load in the genre data
@@ -332,15 +336,18 @@ def get_ranking_results(encoded_train,encoded_test):
         utils.diagnostic_print("!" + "Error loading index_to_track_id.pt")
         raise e
     # 4. Get the cosine ranking results
-    top_k_cosine_only, top_metadata, num_matching_genres, percentage_matching_genres_cosine_only = get_cosine_ranking(encoded_train, encoded_test, track_df, index_to_track_id, genres_df, k=10)
+    # top_k_cosine_only, top_metadata, num_matching_genres, percentage_matching_genres_cosine_only = get_cosine_ranking(encoded_train, encoded_test, track_df, index_to_track_id, genres_df,k=k_val)
     # 5. Get the mixed ranking results
-    top_k_mixed_scores, final_scores, num_matching_genres, percentage_matching_genres_mixed,total_genre_accuracy_mixed,total_artist_accuracy = get_mixed_ranking(encoded_train,encoded_test,track_df, index_to_track_id, genres_df,w_cos=0.8, w_art=0.15, w_gen=0.05)
+    top_k_mixed_scores, final_scores, num_matching_genres, percentage_matching_genres_mixed,total_genre_accuracy_mixed,total_artist_accuracy = get_top_k_mixed_ranking(encoded_train,encoded_test,track_df, index_to_track_id, genres_df,w_cos, w_art, w_gen,k=k_val)
+    
+    #save the final_scores to pkl file
+    torch.save(final_scores, os.path.join(utils.data_base_dir, f"{output_csv_prefix}_final_scores.pt"))
     
     #6. Call a function to append the results to a csv
-    process_completed1 = top_k_to_csv(top_k_cosine_only, track_df,index_to_track_id,k=10,cosine_only=True)
-    process_completed2 = top_k_to_csv(top_k_mixed_scores, track_df,index_to_track_id,k=10,cosine_only=False)
+    # process_completed1 = top_k_to_csv(output_csv_prefix,top_k_cosine_only, track_df,index_to_track_id,k=k_val,cosine_only=True)
+    process_completed2 = top_k_to_csv(output_csv_prefix,top_k_mixed_scores, track_df,index_to_track_id,k=k_val,cosine_only=False)
     
-    return process_completed1 and process_completed2
+    return process_completed2
 
 if __name__ == "__main__":
     # Use for testing with dummy data

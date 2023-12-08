@@ -164,6 +164,7 @@ def convert_audio(dir, sr=1010):
         audio, sr = librosa.load(dir, sr=sr)
         audio = librosa.feature.melspectrogram(y=audio, sr=sr)
     except Exception as e:
+        print(f'Exception:{e}')
         utils.diagnostic_print("!" + "Error loading audio file: " + dir)
         return None, lost
 
@@ -176,6 +177,37 @@ def convert_audio(dir, sr=1010):
         return None, lost
 
     return audio_tensor, lost
+
+def get_test_data(base_dir_for_test_files,custom_csv):
+    """
+    Given a base directory for test files and a custom csv file, returns the test data
+    """
+    #Get the test data from the base directory
+    test_data = []
+    num_lost = 0
+    for file in os.listdir(base_dir_for_test_files):
+        #Convert the file to a tensor
+        audio_file_name = file.split(".")[0]
+        audio_file_name = '{0:0>6}'.format(audio_file_name)
+        converted_audio_file, lost = convert_audio(os.path.join(base_dir_for_test_files, file))
+        if lost:
+            num_lost += 1
+            utils.diagnostic_print("!" + f"Error converting audio file: {audio_file_name} to tensor: " + dir)
+        test_data.append(converted_audio_file)
+    utils.diagnostic_print("#" + f"Number of files which couldnt be converted to audio files {num_lost} files")
+    #Get the test data from the custom csv file
+    df = pandas.read_csv(custom_csv)
+    #Get the column Title
+    titles = df["Title"]
+    for title in titles:
+        #Convert the file to a tensor
+        audio_file_name = title.split(".")[0]
+        audio_file_name = '{0:0>6}'.format(audio_file_name)
+        converted_audio_file, lost = convert_audio(os.path.join(base_dir_for_test_files, title))
+        if lost:
+            continue
+        test_data.append(converted_audio_file)
+    return test_data
 
 # Loads the data from the folders pre-split
 def load_data(dir):

@@ -180,3 +180,6 @@ datasets/fma/index_to_track_id.pt
 *.pth
 *.json
 *.wandb
+#Remove wandb folder files
+**wandb
+

@@ -24,16 +24,16 @@ import wandb
 # 7. Use the test set to produce a ranking
 # 8. Evaluate the ranking
 #Initialize a new wandb run
-wandb.init(project="sound-queue", entity="sound-queue", config={
-    "learning_rate": 0.001,
+wandb.init(project="working-sound-queue", entity="sound-queue", config={
+    # "learning_rate": ,
     "architecture": "Convolutional Autoencoder",
     "dataset": "FMA",
-    "epochs": 20,
+    # "epochs": 20,
     }, tags=["autoencoder", "convolutional", "fma", "preprocessing"])
 
 
 # 1 and 2, load and preprocess the dataset
-train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data()
+train_set, test_set, validation_set, train_df, genre_df = preprocessing.get_data(True)
 
 # exit()
 
@@ -51,7 +51,7 @@ utils.diagnostic_print("Validation set size: " + str(len(validation_set)))
 
 utils.diagnostic_print("Shape of audio tensor: " + str(train_set[0][0].shape))
 
-print(f'Cuda.is_available(): {torch.cuda.is_available()}')
+print(f'Cuda.is_available(p): {torch.cuda.is_available()}')
 
 # # 3 and 4, train the autoencoder and encode the dataset
 encoded_train, encoded_test = autoencoder.get_encoded_data(train_set,test_set,validation_set,wandb)
